@@ -1,8 +1,11 @@
 import chess
 import random
 import time
-from cnn import cnn
+import logging
+from cnn import get_network_endpoints
 
+
+	
 def random_play():
         
     done = False
@@ -38,9 +41,9 @@ def random_play():
 def main():
     
    
-   
-    net = cnn()    
-    
+	logging.basicConfig(filename='log.txt',level=logging.DEBUG)
+	logging.getLogger().addHandler(logging.StreamHandler())
+	net = get_network_endpoints()
     
 if __name__ == "__main__":
     main()
