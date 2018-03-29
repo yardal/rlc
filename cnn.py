@@ -24,10 +24,16 @@ def cnn(input,reuse=None):
 
     z = [16,32]
     network = input
-    network = tf.layers.conv3d(input,8,3,name="Conv3d_1",reuse=None)
-    network = tf.layers.conv3d(network,16,3,name="Conv3d_2",reuse=None)
-    network = tf.layers.conv3d(network,32,3,name="Conv3d_3",reuse=None)
-    network = tf.layers.conv3d(network,32,2,name="Conv3d_4",reuse=None)
+    network = tf.layers.conv3d(network,8 ,3,2,name="Conv3d_1",padding="SAME",reuse=None)
+    network = tf.layers.conv3d(network,16,3,2,name="Conv3d_2",padding="SAME",reuse=None)
+    network = tf.layers.conv3d(network,32,3,2,name="Conv3d_3",padding="SAME",reuse=None)
+    
+    shape = network.get_shape().as_list() 
+    dim = np.prod(shape[1:])  
+    
+    network = tf.reshape(network, [-1, dim])   
+    network = tf.layers.dense(network,16,tf.nn.relu)
+    network = tf.layers.dense(network,1)
     return network
 
 def get_network_endpoints():
@@ -40,7 +46,6 @@ def get_network_endpoints():
     y = tf.placeholder(tf.float32,shape = (None,1))
     net = cnn(x,keep_prob)    
     prob = tf.nn.softmax(net)
-    predict = tf.argmax(net,axis=1)
     
     
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels = y,logits = net))
@@ -50,7 +55,6 @@ def get_network_endpoints():
     
     loss = loss + 1e-5*l2_loss
     opt = tf.train.AdamOptimizer(lr).minimize(loss)
-    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(y,axis=1),tf.argmax(net,axis=1)),tf.float32))
 
     endpoints['x']         = x           
     endpoints['y']         = y           
@@ -59,9 +63,9 @@ def get_network_endpoints():
     endpoints['lr']        = lr          
     endpoints['loss']      = loss        
     endpoints['prob']      = prob        
-    endpoints['predict']   = predict     
-    endpoints['opt']       = opt         
-    endpoints['accuracy']  = accuracy    
+    endpoints['prob']      = prob        
+    endpoints['sess']      = tf.Session()
 	
-    print_var_list()
+    endpoints['sess'].run(tf.global_variables_initializer())
+    #print_var_list()
     return endpoints
