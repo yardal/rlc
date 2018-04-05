@@ -1,8 +1,18 @@
+from fen import *
+
 class SearchNode(object):
     def __init__(self, data, depth):
         self.data = data
         self.depth = depth
         self.children = []
+
+    def __str__(self):
+
+        string = " " * self.depth + " Data: " + self.data + " number of Children " + str(len(self.children)) + "\n"
+        for child in self.children:
+            string = string + str(child)
+
+        return string
 
     def add_child(self, obj):
         self.children.append(obj)
@@ -29,15 +39,24 @@ class SearchNode(object):
         _get_leaf_nodes(self)
         return leafs
 
-    def get_nodes_by_depth(self, depth):
-        nodes = []
 
-        def _get_nodes_by_depth(node):
-            if node is not None:
-                if node.depth == depth:
-                    nodes.append(node)
-                for n in node.children:
-                    _get_nodes_by_depth(n)
+def alpha_beta_search(node, depth, alpha, beta, maximizer, net):
+    if depth == 0 or node.children == []:
+        return net.eval(get_tensor_from_FEN(node.data))
 
-        _get_nodes_by_depth(self)
-        return nodes
+    if maximizer:
+        v = -4.0
+        for child in node.children:
+            v = max(v, alpha_beta_search(child, depth - 1, alpha, beta, not maximizer, net))
+            alpha = max(alpha, v)
+            if beta <= alpha:
+                break
+            return v
+    else:
+        v = 4.0
+        for child in node.children:
+            v = min(v, alpha_beta_search(child, depth - 1, alpha, beta, maximizer, net))
+            alpha = min(beta, v)
+            if beta <= alpha:
+                break
+            return v

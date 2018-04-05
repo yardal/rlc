@@ -37,33 +37,29 @@ def cnn(input, reuse=None):
     return network
 
 
-def get_network_endpoints():
-    endpoints = {}
-    x = tf.placeholder(tf.float32, shape=(None, 12, 8, 8, 1))
-    keep_prob = tf.placeholder(tf.float32, shape=())
-    lr = tf.placeholder(tf.float32, shape=())
-    y = tf.placeholder(tf.float32, shape=(None, 1))
-    net = cnn(x, keep_prob)
-    prob = tf.nn.softmax(net)
+class Network:
 
-    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=net))
-    l2_loss = 0
-    for i in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES):
-        l2_loss = l2_loss + tf.norm(i, ord=1)
+    def __init__(self):
+        self.x = tf.placeholder(tf.float32, shape=(None, 12, 8, 8, 1))
+        self.keep_prob = tf.placeholder(tf.float32, shape=())
+        self.lr = tf.placeholder(tf.float32, shape=())
+        self.y = tf.placeholder(tf.float32, shape=(None, 1))
+        self.net = cnn(self.x)
+        self.prob = tf.nn.sigmoid(self.net)
+        self.l2_lambda = 1e-5
 
-    loss = loss + 1e-5 * l2_loss
-    opt = tf.train.AdamOptimizer(lr).minimize(loss)
+        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y, logits=self.net))
+        l2_loss = 0
+        for i in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES):
+            l2_loss = l2_loss + tf.norm(i, ord=1)
 
-    endpoints['x'] = x
-    endpoints['y'] = y
-    endpoints['net'] = net
-    endpoints['keep_prob'] = keep_prob
-    endpoints['lr'] = lr
-    endpoints['loss'] = loss
-    endpoints['prob'] = prob
-    endpoints['prob'] = prob
-    endpoints['sess'] = tf.Session()
+        loss = loss + self.l2_lambda * l2_loss
+        self.opt = tf.train.AdamOptimizer(self.lr).minimize(loss)
 
-    endpoints['sess'].run(tf.global_variables_initializer())
-    # print_var_list()
-    return endpoints
+        self.sess = tf.Session()
+        self.sess.run(tf.global_variables_initializer())
+
+    def eval(self, tensor):
+
+        return self.sess.run(self.prob, feed_dict={self.x: tensor})
+
