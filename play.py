@@ -5,14 +5,13 @@ import logging
 import random
 import os
 import numpy as np
-import tensorflow as tf
 
 
 max_depth = 2
 
 from search import SearchNode, alpha_beta_search
 from cnn import Network
-
+from fen import get_tensor_from_FEN
 
 def get_tree(board):
     root = SearchNode(board.board_fen(), -1)
@@ -84,40 +83,64 @@ def random_move(board):
     return moves[idx]
 
 
-def self_play(board, net):
-    self_play = 0.5
-    draw_result = "1/2-1/2"
-    result = draw_result
-    while result == draw_result:
+def self_play(net):
+    board = chess.Board()
+    data_dir = "data"
+    if not os.path.isdir(data_dir):
+        os.mkdir(data_dir)
+
+    game_counter = 0
+    self_play_prob = 0.5
+
+    for i in range(100000):
         board.reset()
         move_counter = 0
+
         while not board.is_game_over():
             is_white = move_counter % 2 == 0
             move_counter = move_counter + 1
             prob = random.uniform(0, 1)
-            if prob > self_play:
+            if prob > self_play_prob:
                 move = play(board, net, is_white)
             else:
                 move = random_move(board)
             board.push(move)
-        print(board)
-        print(board.result())
-        print(board.fen())
-        print()
-        print()
-        print()
-        result = board.result()
+        game_counter = game_counter + 1
+        result = get_score(board)
 
+        file_name = os.path.join(data_dir, str(game_counter) + "_" + str(result))
+        np.save(file_name, get_tensor_from_FEN(board.fen()))
+
+
+def test(a, b):
+    white = Network(a)
+    black = Network(b)
+    print("training")
+    white.train()
+
+    print("playing")
+    board = chess.Board()
+    for i in range(10):
+        print(i)
+        board.reset()
+        while not board.is_game_over():
+            move = play(board, white, True)
+            if  board.is_game_over():
+                break
+            board.push(move)
+            move = play(board, black, False)
+            board.push(move)
+        print (board.result())
 
 def main():
-    board = chess.Board()
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     logging.basicConfig(filename='log.txt', level=logging.DEBUG)
     logging.getLogger().addHandler(logging.StreamHandler())
 
-    net = Network()
-
-    return self_play(board, net)
+    net = Network("model")
+    self_play(net)
+    # net.train()
+    #test("model", "model2")
 
 
 if __name__ == "__main__":
